@@ -8,10 +8,9 @@
 // @include     http://*
 // @include     https://*
 // @grant        none
+// @license        MIT
 // @original-author SkyJin
 // @original-url  https://github.com/SkyJinXX/Golden-Right
-// @downloadURL https://update.greasyfork.org/scripts/396467/%E9%BB%84%E9%87%91%E5%8F%B3%E9%94%AE-%E7%81%B5%E6%B4%BB%E6%8E%A7%E5%88%B6%E8%A7%86%E9%A2%91%E5%80%8D%E9%80%9F-Golden%20Right-Flexibly%20control%20the%20playback%20rate%20of%20videos.user.js
-// @updateURL https://update.greasyfork.org/scripts/396467/%E9%BB%84%E9%87%91%E5%8F%B3%E9%94%AE-%E7%81%B5%E6%B4%BB%E6%8E%A7%E5%88%B6%E8%A7%86%E9%A2%91%E5%80%8D%E9%80%9F-Golden%20Right-Flexibly%20control%20the%20playback%20rate%20of%20videos.meta.js
 // ==/UserScript==
 
 (function () {
