@@ -1,13 +1,17 @@
 // ==UserScript==
-// @name         黄金右键-灵活控制视频倍速-Golden Right-Flexibly control the playback rate of videos
+// @name         B站右键 Bilibili-Right-Arrow 
 // @description  按住"→"键倍速播放, 松开"→"键恢复原速, 灵活追剧看视频~ 支持所有H5视频的网站(YouTube、腾讯视频、优酷、番剧等); Press and hold the right arrow key (→) to set the video playback rate faster. Release the key to restore the original rate
 // @namespace    http://tampermonkey.net/
-// @homepage     https://github.com/SkyJinXX/Golden-Right
-// @version      1.1.1
-// @author       SkyJin
+// @homepage     https://github.com/DEAN-Cherry/Bilibili-Right-Arrow
+// @version      1.0.0
+// @author       DEAN-Cherry
 // @include     http://*
 // @include     https://*
 // @grant        none
+// @original-author SkyJin
+// @original-url  https://github.com/SkyJinXX/Golden-Right
+// @downloadURL https://update.greasyfork.org/scripts/396467/%E9%BB%84%E9%87%91%E5%8F%B3%E9%94%AE-%E7%81%B5%E6%B4%BB%E6%8E%A7%E5%88%B6%E8%A7%86%E9%A2%91%E5%80%8D%E9%80%9F-Golden%20Right-Flexibly%20control%20the%20playback%20rate%20of%20videos.user.js
+// @updateURL https://update.greasyfork.org/scripts/396467/%E9%BB%84%E9%87%91%E5%8F%B3%E9%94%AE-%E7%81%B5%E6%B4%BB%E6%8E%A7%E5%88%B6%E8%A7%86%E9%A2%91%E5%80%8D%E9%80%9F-Golden%20Right-Flexibly%20control%20the%20playback%20rate%20of%20videos.meta.js
 // ==/UserScript==
 
 (function () {
@@ -16,7 +20,7 @@
     let down_count = 0;
     const faster_rate = 3;
     let normal_rate = 1;
-    const add_time = 7;
+    const add_time = 3;
     let page_video;
 
     function makeArray(arr) {
@@ -30,6 +34,49 @@
         }
         return Array.prototype.slice.call(arr);
     }
+
+    const createSpeedIndicator = () => {
+        const indicator = document.createElement('div');
+        indicator.id = 'speed-indicator';
+        indicator.style.position = 'absolute';
+        indicator.style.top = '50px';
+        indicator.style.left = '50%';
+        indicator.style.transform = 'translateX(-50%)';
+        indicator.style.backgroundColor = 'rgba(0, 0, 0, 0.5)';
+        indicator.style.color = 'white';
+        indicator.style.padding = '8px 8px';
+        indicator.style.borderRadius = '5px';
+        indicator.style.fontSize = '12px';
+        indicator.style.zIndex = '9999';
+        indicator.style.display = 'none';
+        indicator.innerText = '倍速播放中...';
+        return indicator;
+    };
+
+    const showSpeedIndicator = (videoElement) => {
+        let indicator = document.getElementById('speed-indicator');
+        if (!indicator) {
+            indicator = createSpeedIndicator();
+            videoElement.parentElement.appendChild(indicator);
+        }
+        indicator.style.display = 'block';
+    };
+
+    const hideSpeedIndicator = () => {
+        const indicator = document.getElementById('speed-indicator');
+        if (indicator) {
+            indicator.style.display = 'none';
+        }
+    };
+
+    const restoreNormalPlaybackRate = () => {
+        if (page_video && page_video.playbackRate !== normal_rate) {
+            page_video.playbackRate = normal_rate;
+            hideSpeedIndicator();
+            relativeEvent.shouldPrevent && relativeEvent.allow();
+        }
+    };
+
     const init = () => {
         if (location.origin.indexOf("youtube.com") > -1) {
             document.body.addEventListener("keydown", downEvent_YT, true);
@@ -38,16 +85,9 @@
             document.body.addEventListener("keydown", downEvent, true);
             document.body.parentElement.addEventListener("keyup", upEvent, true);
         }
+        window.addEventListener('blur', restoreNormalPlaybackRate);
     };
-/*
-.............########..#######..########......#######..########.##.....##.########.########...######.
-.............##.......##.....##.##.....##....##.....##....##....##.....##.##.......##.....##.##....##
-.............##.......##.....##.##.....##....##.....##....##....##.....##.##.......##.....##.##......
-.............######...##.....##.########.....##.....##....##....#########.######...########...######.
-.............##.......##.....##.##...##......##.....##....##....##.....##.##.......##...##.........##
-.............##.......##.....##.##....##.....##.....##....##....##.....##.##.......##....##..##....##
-.............##........#######..##.....##.....#######.....##....##.....##.########.##.....##..######.
-*/
+
     const getPageVideo = () => {
         console.log("Finding available Video Element...");
         const allVideoElementArray = makeArray(
@@ -68,6 +108,7 @@
             console.log("找不到正在播放的Video Element");
         }
     };
+
     const checkPageVideo = (v) => {
         if (v) {
             return v.offsetWidth > 9 && !v.paused;
@@ -75,9 +116,9 @@
             return false;
         }
     };
+
     const relativeEvent = {
         _stopper: (e) => e.stopPropagation(),
-        // 目前针对腾讯视频
         shouldPrevent:
             location.origin.indexOf("qq.com") > -1 ||
             location.origin.indexOf("wetv.vip") > -1,
@@ -98,28 +139,28 @@
             );
         },
     };
+
     const downEvent = (e) => {
         if (e.keyCode !== 39) return;
         e.stopPropagation();
 
-        // 计数+1
         down_count++;
 
-        // 长按右键-开始
         if (down_count === 2) {
             if (checkPageVideo(page_video) || (page_video = getPageVideo())) {
                 relativeEvent.shouldPrevent && relativeEvent.prevent();
                 normal_rate = page_video.playbackRate;
                 page_video.playbackRate = faster_rate;
+                showSpeedIndicator(page_video);
                 console.log("加速播放中...");
             }
         }
     };
+
     const upEvent = (e) => {
         if (e.keyCode !== 39) return;
         e.stopPropagation();
 
-        // 单击右键时
         if (down_count === 1) {
             if (checkPageVideo(page_video) || (page_video = getPageVideo())) {
                 page_video.currentTime += add_time;
@@ -127,30 +168,18 @@
             }
         }
 
-        // 长按右键-结束
-        if (page_video && page_video.playbackRate !== normal_rate) {
-            page_video.playbackRate = normal_rate;
-            relativeEvent.shouldPrevent && relativeEvent.allow();
-        }
+        restoreNormalPlaybackRate();
 
-        // 计数-重置
         down_count = 0;
     };
-/*
-    .########..#######..########.....##....##..#######..##.....##.########.##.....##.########..########
-    .##.......##.....##.##.....##.....##..##..##.....##.##.....##....##....##.....##.##.....##.##......
-    .##.......##.....##.##.....##......####...##.....##.##.....##....##....##.....##.##.....##.##......
-    .######...##.....##.########........##....##.....##.##.....##....##....##.....##.########..######..
-    .##.......##.....##.##...##.........##....##.....##.##.....##....##....##.....##.##.....##.##......
-    .##.......##.....##.##....##........##....##.....##.##.....##....##....##.....##.##.....##.##......
-    .##........#######..##.....##.......##.....#######...#######.....##.....#######..########..########
-*/
+
     const getPageVideo_YT = () => {
         console.log("Finding available Video Element...");
         let pv;
 
-        if (document.getElementById("ytd-player") && checkPageVideo_YT(document.getElementById("ytd-player").player_))
+        if (document.getElementById("ytd-player") && checkPageVideo_YT(document.getElementById("ytd-player").player_)){
             pv = document.getElementById("ytd-player").player_
+        }
 
         if (pv) {
             console.log("Found the Video Element!");
@@ -159,6 +188,7 @@
             console.log("找不到正在播放的Video Element");
         }
     };
+
     const checkPageVideo_YT = (v) => {
         if (v) {
             return v.getPlayerState() == 1;
@@ -166,27 +196,27 @@
             return false;
         }
     };
+
     const downEvent_YT = (e) => {
         if (e.keyCode !== 39) return;
         e.stopPropagation();
 
-        // 计数+1
         down_count++;
 
-        // 长按右键-开始
         if (down_count === 2) {
             if (checkPageVideo_YT(page_video) || (page_video = getPageVideo_YT())) {
                 normal_rate = page_video.getPlaybackRate();
                 page_video.setPlaybackRate(faster_rate);
+                showSpeedIndicator(page_video.getIframe());
                 console.log("加速播放中...");
             }
         }
     };
+
     const upEvent_YT = (e) => {
         if (e.keyCode !== 39) return;
         e.stopPropagation();
 
-        // 单击右键时
         if (down_count === 1) {
             if (checkPageVideo_YT(page_video) || (page_video = getPageVideo_YT())) {
                 page_video.seekToStreamTime(page_video.getCurrentTime() + add_time);
@@ -194,22 +224,13 @@
             }
         }
 
-        // 长按右键-结束
         if (page_video && page_video.playbackRate !== normal_rate) {
             page_video.setPlaybackRate(normal_rate);
+            hideSpeedIndicator();
         }
 
-        // 计数-重置
         down_count = 0;
     };
-/*
-.............####.##....##.####.########.####....###....########.########
-..............##..###...##..##.....##.....##....##.##......##....##......
-..............##..####..##..##.....##.....##...##...##.....##....##......
-..............##..##.##.##..##.....##.....##..##.....##....##....######..
-..............##..##..####..##.....##.....##..#########....##....##......
-..............##..##...###..##.....##.....##..##.....##....##....##......
-.............####.##....##.####....##....####.##.....##....##....########
-*/
+
     init();
 })();
