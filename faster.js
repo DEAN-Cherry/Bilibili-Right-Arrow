@@ -5,8 +5,9 @@
 // @homepage     https://github.com/DEAN-Cherry/Bilibili-Right-Arrow
 // @version      1.0.0
 // @author       DEAN-Cherry
-// @include     http://*
-// @include     https://*
+// @match     http://*
+// @match     https://*
+// @exclude      *://*.bilibili.com/*
 // @grant        none
 // @license        MIT
 // ==/UserScript==
