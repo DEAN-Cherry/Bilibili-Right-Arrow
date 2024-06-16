@@ -17,7 +17,7 @@ The script supports all websites that use HTML5 video players, such as YouTube, 
 
 # Where to Get the Script
 
-You can install the script from its [Greasyfork page](https://greasyfork.org/zh-CN/scripts/396467-%E9%BB%84%E9%87%91%E5%8F%B3%E9%94%AE).
+You can install the script from its [Greasyfork page]([https://greasyfork.org/zh-CN/scripts/396467-%E9%BB%84%E9%87%91%E5%8F%B3%E9%94%AE](https://greasyfork.org/zh-CN/scripts/498096-b%E7%AB%99%E5%8F%B3%E9%94%AE-bilibili-right-arrow)).
 # Others 其他
 
 You're welcome to publish upgraded versions of this script or incorporate it into existing video tool scripts. 
@@ -26,6 +26,10 @@ You're welcome to publish upgraded versions of this script or incorporate it int
 
 # References 参考
 
-This script was inspired by the "HTML5 Video Player Mini Tools" available at: https://bbs.kafan.cn/thread-2093014-1-1.html
+This script was forked from `Golden-Right`  
+  [GitHub](https://github.com/SkyJinXX/Golden-Right) 
+  [Greasyfork](https://greasyfork.org/zh-CN/scripts/396467-%E9%BB%84%E9%87%91%E5%8F%B3%E9%94%AE)
 
-此脚本的灵感来自于“HTML5视频播放小工具”，可在以下网址查看：https://bbs.kafan.cn/thread-2093014-1-1.html
+此脚本Fork并修改自 `黄金右键脚本`  
+  [GitHub](https://github.com/SkyJinXX/Golden-Right) 
+  [Greasyfork](https://greasyfork.org/zh-CN/scripts/396467-%E9%BB%84%E9%87%91%E5%8F%B3%E9%94%AE)
