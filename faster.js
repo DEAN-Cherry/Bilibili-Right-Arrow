@@ -3,7 +3,7 @@
 // @description  按住"→"键倍速播放, 松开"→"键恢复原速, 灵活追剧看视频~ 支持所有H5视频的网站(YouTube、腾讯视频、优酷、番剧等) Fork 并修改自 SkyJin 的 Golden-Right (https://github.com/SkyJinXX/Golden-Right); Press and hold the right arrow key (→) to set the video playback rate faster. Release the key to restore the original rate
 // @namespace    http://tampermonkey.net/
 // @homepage     https://github.com/DEAN-Cherry/Bilibili-Right-Arrow
-// @version      1.0.0
+// @version      1.0.1
 // @author       DEAN-Cherry
 // @match     http://*
 // @match     https://*
