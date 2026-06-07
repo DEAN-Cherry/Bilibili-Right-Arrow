@@ -3,7 +3,7 @@
 // @description  按住"→"键倍速播放，松开"→"键恢复原速；单击"→"键快进。支持所有H5视频网站(YouTube、腾讯视频、优酷、番剧等)。Fork 并修改自 SkyJin 的 Golden-Right (https://github.com/SkyJinXX/Golden-Right)。Press and hold the right arrow key (→) to speed up, release to restore; tap → to skip forward.
 // @namespace    http://tampermonkey.net/
 // @homepage     https://github.com/DEAN-Cherry/Bilibili-Right-Arrow
-// @version      1.2.1
+// @version      1.2.2
 // @author       DEAN-Cherry
 // @match        http://*/*
 // @match        https://*/*
