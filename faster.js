@@ -69,7 +69,7 @@
 .gr-speed-indicator *{ margin:0; padding:0; }
 .gr-speed-indicator.gr-visible{ opacity:1; transform:translateX(-50%) translateY(0) scale(1); }
 .gr-speed-indicator .gr-chevrons{ display:inline-flex; align-items:center; gap:1.5px; }
-.gr-speed-indicator .gr-ico{ width:8px; height:10px; display:block; opacity:.3; }
+.gr-speed-indicator .gr-ico{ width:7px; height:10px; display:block; opacity:.3; }
 .gr-speed-indicator.gr-visible .gr-ico{ animation:gr-wave 1.05s ease-in-out infinite; }
 .gr-speed-indicator .gr-num{ display:inline-flex; align-items:center; line-height:1; font-variant-numeric:tabular-nums; }
 @keyframes gr-wave{ 0%,100%{ opacity:.3; } 35%{ opacity:1; } }
