@@ -3,7 +3,7 @@
 // @description  按住"→"键倍速播放，松开"→"键恢复原速；单击"→"键快进。支持所有H5视频网站(YouTube、腾讯视频、优酷、番剧等)。Fork 并修改自 SkyJin 的 Golden-Right (https://github.com/SkyJinXX/Golden-Right)。Press and hold the right arrow key (→) to speed up, release to restore; tap → to skip forward.
 // @namespace    http://tampermonkey.net/
 // @homepage     https://github.com/DEAN-Cherry/Bilibili-Right-Arrow
-// @version      1.2.0
+// @version      1.2.1
 // @author       DEAN-Cherry
 // @match        http://*/*
 // @match        https://*/*
@@ -52,23 +52,28 @@
         style.id = STYLE_ID;
         style.textContent = `
 .gr-speed-indicator{
-  position:absolute; top:16px; left:50%;
+  position:absolute; top:clamp(24px,7%,72px); left:50%;
   transform:translateX(-50%) translateY(-10px) scale(.96);
-  display:flex; align-items:center; gap:7px;
-  padding:7px 13px; border-radius:999px;
+  display:inline-flex; align-items:center; gap:8px;
+  margin:0; padding:7px 13px; border-radius:999px;
   font:600 13px/1 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"PingFang SC","Microsoft YaHei",sans-serif;
   letter-spacing:.02em; white-space:nowrap;
   z-index:2147483647; pointer-events:none; user-select:none;
   opacity:0; transition:opacity .22s ease, transform .26s cubic-bezier(.2,.8,.2,1);
-  background:rgba(255,255,255,.82); color:#1c1c1e;
-  border:1px solid rgba(0,0,0,.06); box-shadow:0 6px 22px rgba(0,0,0,.16);
-  -webkit-backdrop-filter:blur(14px) saturate(160%); backdrop-filter:blur(14px) saturate(160%);
+  --gr-bg:rgba(255,255,255,.55); --gr-fg:#1c1c1e; --gr-bd:rgba(0,0,0,.06); --gr-sh:0 4px 18px rgba(0,0,0,.16);
+  background:var(--gr-bg); color:var(--gr-fg);
+  border:1px solid var(--gr-bd); box-shadow:var(--gr-sh);
+  -webkit-backdrop-filter:blur(20px) saturate(180%); backdrop-filter:blur(20px) saturate(180%);
 }
+.gr-speed-indicator,.gr-speed-indicator *{ box-sizing:border-box; }
+.gr-speed-indicator *{ margin:0; padding:0; }
 .gr-speed-indicator.gr-visible{ opacity:1; transform:translateX(-50%) translateY(0) scale(1); }
-.gr-speed-indicator .gr-ico{ width:15px; height:15px; display:block; color:inherit; opacity:.9; }
-.gr-speed-indicator.gr-visible .gr-ico{ animation:gr-ff 1s ease-in-out infinite; }
-.gr-speed-indicator .gr-num{ font-variant-numeric:tabular-nums; }
-@keyframes gr-ff{ 0%,100%{ opacity:.5; transform:translateX(-1px); } 50%{ opacity:1; transform:translateX(2px); } }
+.gr-speed-indicator .gr-chevrons{ display:inline-flex; align-items:center; gap:1.5px; }
+.gr-speed-indicator .gr-ico{ width:8px; height:10px; display:block; opacity:.3; }
+.gr-speed-indicator.gr-visible .gr-ico{ animation:gr-wave 1.05s ease-in-out infinite; }
+.gr-speed-indicator .gr-num{ display:inline-flex; align-items:center; line-height:1; font-variant-numeric:tabular-nums; }
+@keyframes gr-wave{ 0%,100%{ opacity:.3; } 35%{ opacity:1; } }
+.gr-speed-indicator[data-theme="dark"]{ --gr-bg:rgba(28,28,30,.5); --gr-fg:#f5f5f7; --gr-bd:rgba(255,255,255,.14); --gr-sh:0 4px 20px rgba(0,0,0,.45); }
 
 .gr-overlay{ position:fixed; inset:0; display:flex; align-items:center; justify-content:center;
   background:rgba(0,0,0,.45); -webkit-backdrop-filter:blur(3px); backdrop-filter:blur(3px);
@@ -92,8 +97,8 @@
 .gr-btn-cancel{ background:rgba(0,0,0,.05); color:inherit; border-color:rgba(0,0,0,.1); }
 .gr-btn-save{ background:#1c1c1e; color:#fff; }
 @media (prefers-color-scheme: dark){
-  .gr-speed-indicator{ background:rgba(28,28,30,.7); color:#f5f5f7;
-    border:1px solid rgba(255,255,255,.12); box-shadow:0 6px 24px rgba(0,0,0,.5); }
+  .gr-speed-indicator:not([data-theme="light"]){ --gr-bg:rgba(28,28,30,.5); --gr-fg:#f5f5f7;
+    --gr-bd:rgba(255,255,255,.14); --gr-sh:0 4px 20px rgba(0,0,0,.45); }
   .gr-dialog{ background:#1c1c1e; color:#f5f5f7; border:1px solid rgba(255,255,255,.1); }
   .gr-row input{ background:#2c2c2e; border-color:rgba(255,255,255,.16); }
   .gr-btn-cancel{ background:rgba(255,255,255,.08); border-color:rgba(255,255,255,.14); }
@@ -106,6 +111,28 @@
     const INDICATOR_ID = "gr-speed-indicator";
     const SVG_NS = "http://www.w3.org/2000/svg";
 
+    // one right-pointing triangle; the staggered delay drives the left→right wave
+    const makeChevron = (delay) => {
+        const svg = document.createElementNS(SVG_NS, "svg");
+        svg.setAttribute("class", "gr-ico");
+        svg.setAttribute("viewBox", "0 0 15 13");
+        svg.setAttribute("fill", "currentColor");
+        svg.setAttribute("aria-hidden", "true");
+        svg.style.animationDelay = delay + "s";
+        const path = document.createElementNS(SVG_NS, "path");
+        // rounded right-pointing triangle (round line-joins soften the corners, à la Bilibili)
+        path.setAttribute("d", "M2 2L13 6.5L2 11Z");
+        path.setAttribute("stroke", "currentColor");
+        path.setAttribute("stroke-width", "2.2");
+        path.setAttribute("stroke-linejoin", "round");
+        path.setAttribute("stroke-linecap", "round");
+        svg.appendChild(path);
+        return svg;
+    };
+
+    // number of arrows follows the speed (e.g. 3x -> 3), clamped to stay tidy
+    const chevronCount = () => Math.max(1, Math.min(5, Math.round(faster_rate)));
+
     const ensureIndicator = (host) => {
         let el = document.getElementById(INDICATOR_ID);
         if (!el) {
@@ -113,17 +140,11 @@
             el.id = INDICATOR_ID;
             el.className = "gr-speed-indicator";
             // Build via DOM API (avoids TrustedHTML errors on strict CSP sites)
-            const svg = document.createElementNS(SVG_NS, "svg");
-            svg.setAttribute("class", "gr-ico");
-            svg.setAttribute("viewBox", "0 0 24 24");
-            svg.setAttribute("fill", "currentColor");
-            svg.setAttribute("aria-hidden", "true");
-            const path = document.createElementNS(SVG_NS, "path");
-            path.setAttribute("d", "M3 5l8.5 7L3 19V5zm9 0l8.5 7L12 19V5z");
-            svg.appendChild(path);
+            const chevrons = document.createElement("span");
+            chevrons.className = "gr-chevrons";
             const num = document.createElement("span");
             num.className = "gr-num";
-            el.appendChild(svg);
+            el.appendChild(chevrons);
             el.appendChild(num);
         }
         if (host && el.parentElement !== host) host.appendChild(el);
@@ -134,6 +155,12 @@
         ensureStyle();
         const host = (anchorEl && anchorEl.parentElement) || document.body;
         const el = ensureIndicator(host);
+        const chevrons = el.querySelector(".gr-chevrons");
+        const n = chevronCount();
+        if (chevrons.childElementCount !== n) {
+            chevrons.textContent = "";
+            for (let i = 0; i < n; i++) chevrons.appendChild(makeChevron(i * 0.16));
+        }
         el.querySelector(".gr-num").textContent = faster_rate + "×";
         void el.offsetWidth; // force reflow so the fade-in transition plays
         el.classList.add("gr-visible");

@@ -1,0 +1,182 @@
+<!doctype html>
+<html lang="zh">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>黄金右键 · 本地预览 / Preview</title>
+<style>
+  :root { color-scheme: light dark; }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; min-height: 100vh; background: #0b0b0d; color: #e9e9ec;
+    font: 14px/1.5 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "PingFang SC", "Microsoft YaHei", sans-serif;
+    display: flex; flex-direction: column; align-items: center; gap: 16px; padding: 22px 14px 40px;
+  }
+  h1 { font-size: 17px; margin: 4px 0 0; font-weight: 700; }
+  .sub { opacity: .6; font-size: 12.5px; text-align: center; max-width: 720px; }
+  kbd { background: #2a2a30; border: 1px solid #44444c; border-bottom-width: 2px; border-radius: 6px; padding: 1px 7px; font: inherit; font-weight: 600; }
+  .stage {
+    position: relative; width: min(94vw, 880px); aspect-ratio: 16 / 9;
+    border-radius: 14px; overflow: hidden; background: #000;
+    box-shadow: 0 18px 50px rgba(0,0,0,.5); outline: none;
+  }
+  .stage video { width: 100%; height: 100%; display: block; object-fit: cover; background: #000; }
+  .startbtn {
+    position: absolute; inset: 0; display: none; align-items: center; justify-content: center;
+    background: rgba(0,0,0,.45); color: #fff; font-size: 16px; font-weight: 600; cursor: pointer; border: 0;
+  }
+  .bar { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; justify-content: center; }
+  .btn {
+    appearance: none; cursor: pointer; font: inherit; font-weight: 600; font-size: 12.5px;
+    padding: 7px 13px; border-radius: 9px; border: 1px solid #3a3a42; background: #1b1b20; color: #e9e9ec;
+  }
+  .btn:hover { border-color: #5a5a66; }
+  .btn.active { background: #e9e9ec; color: #1b1b20; border-color: #e9e9ec; }
+  .state { font-variant-numeric: tabular-nums; opacity: .85; }
+  .note { opacity: .5; font-size: 12px; max-width: 720px; text-align: center; }
+  a { color: #8ab4ff; }
+</style>
+</head>
+<body>
+  <h1>黄金右键 · 本地预览</h1>
+  <div class="sub">
+    按住 <kbd>→</kbd> 倍速（看三角波浪动画 + 毛玻璃），松开恢复；单击 <kbd>→</kbd> 快进。
+    本页直接加载真实的 <code>faster.js</code>，所见即所得。
+  </div>
+
+  <div class="stage" id="stage" tabindex="0">
+    <video id="v" muted playsinline></video>
+    <button class="startbtn" id="start">▶ 点击开始播放</button>
+  </div>
+
+  <div class="bar">
+    <span style="opacity:.6">画面：</span>
+    <button class="btn" data-scene="mixed">彩色</button>
+    <button class="btn" data-scene="bright">亮</button>
+    <button class="btn" data-scene="dark">暗</button>
+    <span style="width:14px"></span>
+    <span class="state" id="state">普通速度</span>
+    <span style="width:14px"></span>
+    <span id="menu"></span>
+  </div>
+
+  <div class="bar">
+    <span style="opacity:.6">提示框主题：</span>
+    <button class="btn pill-theme" data-pill="">自动(跟随系统)</button>
+    <button class="btn pill-theme" data-pill="light">浅色</button>
+    <button class="btn pill-theme" data-pill="dark">深色</button>
+  </div>
+
+  <div class="note">
+    提示：提示框的深色 / 浅色样式跟随<strong>系统主题</strong>，切换系统外观即可预览两种。
+    单击快进在本预览（实时画布流）里不会真的跳秒——这里专门用来调倍速提示的外观。
+    倍速倍率 / 箭头数量可点上面的「⚙️ 设置」按钮修改并保存（会写入 localStorage）。
+  </div>
+
+  <canvas id="c" width="1280" height="720" style="display:none"></canvas>
+
+  <!-- GM shims: make the real faster.js believe it runs under a userscript manager -->
+  <script>
+    (function () {
+      const KEY = "gr_preview_store";
+      const store = (() => { try { return JSON.parse(localStorage.getItem(KEY)) || {}; } catch { return {}; } })();
+      window.GM_getValue = (k, d) => (Object.prototype.hasOwnProperty.call(store, k) ? store[k] : d);
+      window.GM_setValue = (k, v) => { store[k] = v; localStorage.setItem(KEY, JSON.stringify(store)); };
+      window.GM_registerMenuCommand = (label, fn) => {
+        const b = document.createElement("button");
+        b.className = "btn";
+        b.textContent = label;
+        b.addEventListener("click", fn);
+        document.getElementById("menu").appendChild(b);
+      };
+    })();
+  </script>
+
+  <!-- Fake a "playing" video from an animated canvas (no network needed) -->
+  <script>
+    (function () {
+      const c = document.getElementById("c");
+      const ctx = c.getContext("2d");
+      const W = c.width, H = c.height;
+      let scene = "mixed";
+      let t = 0;
+
+      function draw() {
+        t += 1.4;
+        if (scene === "bright") { ctx.fillStyle = "#eef1f5"; ctx.fillRect(0, 0, W, H); }
+        else if (scene === "dark") { ctx.fillStyle = "#0a0a0f"; ctx.fillRect(0, 0, W, H); }
+        else {
+          const g = ctx.createLinearGradient(0, 0, W, H);
+          g.addColorStop(0, "#3a1c71"); g.addColorStop(.5, "#d76d77"); g.addColorStop(1, "#ffaf7b");
+          ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
+        }
+        // drifting blobs so the frosted blur clearly shows motion
+        for (let i = 0; i < 9; i++) {
+          const x = ((t * 2 + i * 150) % (W + 240)) - 120;
+          const y = H * 0.12 + (i % 5) * H * 0.19;
+          ctx.beginPath();
+          ctx.fillStyle = scene === "bright" ? "rgba(0,0,0,.07)" : "rgba(255,255,255,.13)";
+          ctx.arc(x, y, 70, 0, Math.PI * 2); ctx.fill();
+        }
+        // a bright band sweeping near the top — passes under the pill to test legibility
+        const bx = ((t * 4) % (W + 400)) - 200;
+        const bg = ctx.createLinearGradient(bx, 0, bx + 200, 0);
+        bg.addColorStop(0, "rgba(255,255,255,0)");
+        bg.addColorStop(.5, "rgba(255,255,255,.85)");
+        bg.addColorStop(1, "rgba(255,255,255,0)");
+        ctx.fillStyle = bg; ctx.fillRect(bx, 0, 200, H * 0.28);
+        requestAnimationFrame(draw);
+      }
+      draw();
+
+      const v = document.getElementById("v");
+      const start = document.getElementById("start");
+      try {
+        v.srcObject = c.captureStream(30);
+      } catch (e) {
+        start.textContent = "此浏览器不支持 captureStream";
+      }
+      const tryPlay = () => v.play().then(() => { start.style.display = "none"; }).catch(() => { start.style.display = "flex"; });
+      v.addEventListener("loadedmetadata", tryPlay);
+      tryPlay();
+      start.addEventListener("click", tryPlay);
+
+      // scene buttons
+      const btns = document.querySelectorAll("[data-scene]");
+      const setScene = (s) => { scene = s; btns.forEach(b => b.classList.toggle("active", b.dataset.scene === s)); };
+      btns.forEach(b => b.addEventListener("click", () => setScene(b.dataset.scene)));
+      setScene("mixed");
+
+      // indicator theme override (preview only — drives faster.js's data-theme hook)
+      let pillTheme = "";
+      const pillBtns = document.querySelectorAll(".pill-theme");
+      const applyPillTheme = () => {
+        const ind = document.getElementById("gr-speed-indicator");
+        if (!ind) return;
+        if (pillTheme) ind.setAttribute("data-theme", pillTheme); else ind.removeAttribute("data-theme");
+      };
+      pillBtns.forEach(b => b.addEventListener("click", () => {
+        pillTheme = b.dataset.pill;
+        pillBtns.forEach(x => x.classList.toggle("active", x.dataset.pill === pillTheme));
+        applyPillTheme();
+      }));
+      pillBtns.forEach(x => x.classList.toggle("active", x.dataset.pill === ""));
+
+      // live readout of the indicator state
+      const stateEl = document.getElementById("state");
+      setInterval(() => {
+        applyPillTheme();
+        const ind = document.getElementById("gr-speed-indicator");
+        const on = ind && ind.classList.contains("gr-visible");
+        const chev = ind ? ind.querySelectorAll(".gr-ico").length : 0;
+        stateEl.textContent = on ? ("倍速中 · " + chev + " 个箭头") : "普通速度";
+      }, 120);
+
+      document.getElementById("stage").focus();
+    })();
+  </script>
+
+  <!-- the real script under test -->
+  <script src="faster.js"></script>
+</body>
+</html>
