@@ -1,0 +1,58 @@
+name: Bump userscript version
+
+# When faster.js changes, auto-increment the @version patch number and commit
+# it back. Greasyfork (synced from this repo's raw URL via webhook) only
+# publishes a new version when @version increases, so this is what makes every
+# push reach Tampermonkey users automatically.
+
+on:
+  push:
+    branches: [master]
+    paths: ["faster.js"]
+
+permissions:
+  contents: write
+
+concurrency:
+  group: bump-version
+  cancel-in-progress: false
+
+jobs:
+  bump:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Bump @version (patch) unless the author already changed it
+        run: |
+          set -euo pipefail
+          FILE=faster.js
+
+          extract() { grep -m1 -oE '@version[[:space:]]+[0-9]+\.[0-9]+\.[0-9]+' "$1" 2>/dev/null | grep -oE '[0-9]+\.[0-9]+\.[0-9]+' || true; }
+
+          CUR=$(extract "$FILE")
+          if [ -z "$CUR" ]; then echo "No @version x.y.z found; nothing to do."; exit 0; fi
+
+          # If the pushed commit already changed @version, respect it (manual minor/major bumps).
+          PREV_SHA="${{ github.event.before }}"
+          if git cat-file -e "${PREV_SHA}^{commit}" 2>/dev/null; then
+            PREV=$(git show "${PREV_SHA}:${FILE}" 2>/dev/null | grep -m1 -oE '@version[[:space:]]+[0-9]+\.[0-9]+\.[0-9]+' | grep -oE '[0-9]+\.[0-9]+\.[0-9]+' || true)
+            if [ -n "$PREV" ] && [ "$PREV" != "$CUR" ]; then
+              echo "Author changed version ${PREV} -> ${CUR}; skipping auto-bump."
+              exit 0
+            fi
+          fi
+
+          MAJOR=${CUR%%.*}; REST=${CUR#*.}; MINOR=${REST%%.*}; PATCH=${REST#*.}
+          NEW="${MAJOR}.${MINOR}.$((PATCH + 1))"
+          CUR_ESC=$(printf '%s' "$CUR" | sed 's/\./\\./g')
+          sed -i -E "s#(@version[[:space:]]+)${CUR_ESC}#\1${NEW}#" "$FILE"
+          echo "Bumped ${CUR} -> ${NEW}"
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add "$FILE"
+          git commit -m "chore: bump version to ${NEW} [skip ci]"
+          git push
